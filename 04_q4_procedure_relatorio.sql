@@ -1,42 +1,12 @@
--- ============================================================
--- TRABALHO PRATICO SQL N1
--- Q4 - AUTOMACAO DE RELATORIO COM STORED PROCEDURE
--- Banco de Dados: Sakila
---
--- OBJETIVO:
--- Criar uma procedure parametrizada que gere um relatorio
--- consolidado do desempenho das categorias de filmes em um
--- periodo informado pelo usuario.
---
--- PARAMETROS:
--- p_data_inicio -> data inicial do periodo
--- p_data_fim    -> data final do periodo
---
--- O relatorio retorna:
--- - categoria
--- - total de locacoes
--- - clientes distintos
--- - receita total
--- - ticket medio
---
--- Tambem sao feitas validacoes para impedir:
--- - datas nulas
--- - data inicial maior que a data final
--- ============================================================
-
 USE sakila;
 
 
--- ============================================================
--- 1. REMOVE A PROCEDURE ANTERIOR, CASO JA EXISTA
--- ============================================================
+
 
 DROP PROCEDURE IF EXISTS sp_n1_relatorio_receita_categoria;
 
 
--- ============================================================
--- 2. CRIACAO DA PROCEDURE
--- ============================================================
+
 
 DELIMITER $$
 
@@ -49,10 +19,6 @@ CREATE PROCEDURE sp_n1_relatorio_receita_categoria (
 
 BEGIN
 
-    -- ========================================================
-    -- VALIDACAO 1
-    -- As duas datas precisam ser informadas.
-    -- ========================================================
 
     IF p_data_inicio IS NULL OR p_data_fim IS NULL THEN
 
@@ -64,10 +30,7 @@ BEGIN
     END IF;
 
 
-    -- ========================================================
-    -- VALIDACAO 2
-    -- A data inicial nao pode ser posterior a data final.
-    -- ========================================================
+
 
     IF p_data_inicio > p_data_fim THEN
 
@@ -79,16 +42,6 @@ BEGIN
     END IF;
 
 
-    -- ========================================================
-    -- RELATORIO CONSOLIDADO
-    --
-    -- A consulta percorre:
-    -- payment -> rental -> inventory -> film
-    -- -> film_category -> category
-    --
-    -- Dessa forma, conseguimos relacionar os pagamentos
-    -- realizados com as categorias dos filmes alugados.
-    -- ========================================================
 
     SELECT
 
@@ -152,18 +105,6 @@ BEGIN
         ON fc.category_id = c.category_id
 
 
-    -- ========================================================
-    -- FILTRO POR PERIODO
-    --
-    -- A data inicial e inclusiva.
-    --
-    -- Para incluir todo o ultimo dia informado, somamos
-    -- um dia a p_data_fim e usamos "<".
-    --
-    -- Exemplo:
-    -- p_data_fim = 2005-08-31
-    -- considera registros anteriores a 2005-09-01.
-    -- ========================================================
 
     WHERE
 
@@ -175,11 +116,7 @@ BEGIN
         )
 
 
-    -- ========================================================
-    -- AGRUPAMENTO
-    --
-    -- Cada linha do resultado representa uma categoria.
-    -- ========================================================
+
 
     GROUP BY
 
@@ -187,12 +124,6 @@ BEGIN
         c.name
 
 
-    -- ========================================================
-    -- ORDENACAO
-    --
-    -- Primeiro aparecem as categorias com maior receita.
-    -- Em caso de empate, ordena pelo nome da categoria.
-    -- ========================================================
 
     ORDER BY
 
@@ -205,20 +136,12 @@ END $$
 DELIMITER ;
 
 
--- ============================================================
--- 3. VERIFICACAO DA PROCEDURE
--- ============================================================
 
 SHOW PROCEDURE STATUS
 WHERE Db = 'sakila'
   AND Name = 'sp_n1_relatorio_receita_categoria';
 
 
--- ============================================================
--- 4. TESTE PRINCIPAL
---
--- Exemplo de chamada com um periodo valido.
--- ============================================================
 
 CALL sp_n1_relatorio_receita_categoria(
     '2005-05-01',
@@ -226,57 +149,8 @@ CALL sp_n1_relatorio_receita_categoria(
 );
 
 
--- ============================================================
--- 5. EXEMPLO DE OUTRA CHAMADA
---
--- A mesma procedure pode ser reutilizada para outro periodo
--- sem alterar sua estrutura.
--- ============================================================
 
 CALL sp_n1_relatorio_receita_categoria(
     '2005-06-01',
     '2005-06-30'
 );
-
-
--- ============================================================
--- 6. TESTE DE VALIDACAO
---
--- O comando abaixo DEVE gerar erro, pois a data inicial
--- e maior que a data final.
---
--- Mensagem esperada:
--- "A data inicial nao pode ser maior que a data final."
---
--- Descomente para testar:
--- ============================================================
-
--- CALL sp_n1_relatorio_receita_categoria(
---     '2005-08-31',
---     '2005-05-01'
--- );
-
-
--- ============================================================
--- RESULTADO ESPERADO
---
--- A procedure deve retornar uma tabela com:
---
--- categoria
--- total_locacoes
--- clientes_distintos
--- receita_total
--- ticket_medio
---
--- Dessa forma, a Q4 atende aos requisitos de:
---
--- - procedure parametrizada
--- - pelo menos dois parametros
--- - JOINs entre varias tabelas
--- - COUNT
--- - SUM
--- - AVG
--- - resultado consolidado
--- - validacao de parametros
--- - tratamento de erro com SIGNAL
--- ============================================================
