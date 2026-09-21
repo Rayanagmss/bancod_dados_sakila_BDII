@@ -1,41 +1,8 @@
--- ============================================================
--- TRABALHO PRATICO SQL N1
--- Q3 - GARANTIA DE REGRA DE NEGOCIO
--- TRIGGER COM AUDITORIA
--- Banco de Dados: Sakila
---
--- REGRA:
--- Cliente inativo (customer.active = 0) nao pode realizar
--- uma nova locacao.
---
--- A tentativa invalida deve:
--- 1) ser registrada em uma tabela de log;
--- 2) ser bloqueada pelo trigger.
---
--- OBSERVACAO IMPORTANTE:
--- O ambiente utilizado no desenvolvimento usa GTID.
--- Por isso, para a demonstracao com log MyISAM, o binary log
--- precisa ser desativado SOMENTE na sessao de teste.
--- Depois do teste, ele deve ser reativado.
--- ============================================================
-
 USE sakila;
-
-
--- ============================================================
--- 1. LIMPEZA SEGURA DOS OBJETOS DA Q3
--- ============================================================
 
 DROP TRIGGER IF EXISTS trg_n1_bloqueia_cliente_inativo;
 DROP TABLE IF EXISTS log_locacao_bloqueada;
 
-
--- ============================================================
--- 2. TABELA DE AUDITORIA
---
--- MyISAM foi usado porque o log precisa permanecer gravado
--- mesmo quando o SIGNAL cancela o INSERT em rental.
--- ============================================================
 
 CREATE TABLE log_locacao_bloqueada (
 
@@ -58,15 +25,6 @@ CREATE TABLE log_locacao_bloqueada (
 
 ) ENGINE = MyISAM;
 
-
--- ============================================================
--- 3. TRIGGER
---
--- ATENCAO:
--- A definicao abaixo foi mantida sem acentos/comentarios
--- internos para evitar problemas de codificacao no cliente
--- mysql usado durante os testes.
--- ============================================================
 
 DELIMITER $$
 
@@ -112,18 +70,11 @@ END $$
 DELIMITER ;
 
 
--- ============================================================
--- 4. VERIFICACAO DA CRIACAO DO TRIGGER
--- ============================================================
 
 SHOW TRIGGERS
 FROM sakila
 WHERE `Trigger` = 'trg_n1_bloqueia_cliente_inativo';
 
-
--- ============================================================
--- 5. PREPARACAO DOS DADOS PARA DEMONSTRACAO
--- ============================================================
 
 SET @cliente_inativo = (
     SELECT customer_id
@@ -158,30 +109,10 @@ FROM customer
 WHERE customer_id = @cliente_inativo;
 
 
--- ============================================================
--- 6. DEMONSTRACAO DA REGRA
---
--- IMPORTANTE:
--- No ambiente testado, GTID esta ativo.
--- Por isso, desativamos o binary log SOMENTE nesta sessao.
---
--- Se o servidor do professor nao usar GTID ou nao apresentar
--- o erro 1785, esta linha pode ser dispensada.
--- ============================================================
 
 SET SESSION sql_log_bin = 0;
 
 
--- ============================================================
--- 7. TESTE QUE DEVE SER BLOQUEADO
---
--- O comando abaixo DEVE gerar:
---
--- ERROR 1644 (45000):
--- Operacao bloqueada: cliente inativo nao pode realizar locacao.
---
--- Esse erro e o comportamento esperado.
--- ============================================================
 
 INSERT INTO rental (
     rental_date,
@@ -199,11 +130,6 @@ VALUES (
 );
 
 
--- ============================================================
--- 8. CONSULTA DO LOG
---
--- Mesmo com a locacao bloqueada, a tentativa deve aparecer.
--- ============================================================
 
 SELECT
     log_id,
@@ -217,22 +143,9 @@ FROM log_locacao_bloqueada
 ORDER BY log_id DESC;
 
 
--- ============================================================
--- 9. REATIVACAO DO BINARY LOG NA SESSAO
--- ============================================================
 
 SET SESSION sql_log_bin = 1;
 
 SELECT @@SESSION.sql_log_bin AS binary_log_sessao;
 
 
--- ============================================================
--- RESULTADO ESPERADO
---
--- 1) O cliente inativo e identificado.
--- 2) O trigger e executado automaticamente antes do INSERT.
--- 3) A tentativa e registrada em log_locacao_bloqueada.
--- 4) SIGNAL SQLSTATE '45000' bloqueia a locacao.
--- 5) O aluguel invalido nao entra em rental.
--- 6) O log permanece registrado para auditoria.
--- ============================================================
