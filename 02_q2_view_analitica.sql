@@ -1,41 +1,4 @@
--- ============================================================
--- TRABALHO PRÁTICO SQL N1
--- Q2 - VIEW ANALÍTICA: LOCAÇÕES DEVOLVIDAS COM ATRASO
--- Banco de Dados: Sakila
--- ============================================================
-
 USE sakila;
-
--- ============================================================
--- OBJETIVO
---
--- Identificar locações em que o cliente devolveu o filme
--- depois do prazo permitido e classificá-las de acordo com
--- uma prioridade.
---
--- REGRA ANALÍTICA:
--- Uma locação é considerada atrasada quando:
---
--- dias que o cliente ficou com o filme
--- >
--- quantidade de dias permitidos para aluguel
---
--- O prazo permitido está armazenado em:
--- film.rental_duration
---
--- PRIORIZAÇÃO:
---
--- 1 dia de atraso      -> Score 1 -> BAIXA
--- 2 a 4 dias de atraso -> Score 2 -> MEDIA
--- 5 dias ou mais       -> Score 3 -> ALTA
---
--- Quanto maior o score, maior a prioridade de análise.
--- ============================================================
-
-
--- ============================================================
--- CRIAÇÃO DA VIEW
--- ============================================================
 
 CREATE OR REPLACE VIEW vw_n1_locacoes_atrasadas AS
 
@@ -95,10 +58,6 @@ SELECT
     p.amount AS valor_pago,
 
 
-    -- ========================================================
-    -- SCORE NUMÉRICO DE PRIORIDADE
-    -- ========================================================
-
     CASE
 
         -- 5 dias ou mais de atraso = prioridade alta
@@ -126,11 +85,6 @@ SELECT
 
     END AS score_prioridade,
 
-
-    -- ========================================================
-    -- DESCRIÇÃO DA PRIORIDADE
-    -- ========================================================
-
     CASE
 
         WHEN (
@@ -155,10 +109,6 @@ SELECT
 
     END AS prioridade
 
-
--- ============================================================
--- TABELAS UTILIZADAS
--- ============================================================
 
 FROM rental r
 
@@ -193,13 +143,6 @@ LEFT JOIN payment p
     ON r.rental_id = p.rental_id
 
 
--- ============================================================
--- FILTRO
---
--- Consideramos apenas:
--- 1. Filmes que já possuem data de devolução;
--- 2. Devoluções realizadas depois do prazo permitido.
--- ============================================================
 
 WHERE
 
@@ -211,12 +154,6 @@ WHERE
     ) > f.rental_duration;
 
 
--- ============================================================
--- CONSULTA PARA DEMONSTRAÇÃO DA VIEW
---
--- Mostra somente 15 registros para evitar exibir milhares
--- de linhas durante a apresentação.
--- ============================================================
 
 SELECT
     aluguel_id,
@@ -238,9 +175,6 @@ ORDER BY
 LIMIT 15;
 
 
--- ============================================================
--- RESUMO DA QUANTIDADE POR PRIORIDADE
--- ============================================================
 
 SELECT
     prioridade,
